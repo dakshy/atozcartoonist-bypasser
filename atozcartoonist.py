@@ -28,21 +28,26 @@ def expertlinks_scrape(url):
     }
     res = client.get(url, cookies={}, headers=h)
     url = re.findall('\&url=(.*?)"', res.text)[0]
-    print(base64.b64decode(url).decode('utf-8'))
+    return base64.b64decode(url).decode('utf-8')
     
 
 def atozcartoonist_bypasser(psa_url):
     client = cloudscraper.create_scraper(allow_brotli=False)
     r = client.get(psa_url)
-    soup = BeautifulSoup(r.text, "html.parser").find_all(class_="mks_accordion_content")
-    
+    soup = BeautifulSoup(r.text, "html.parser").find_all("a")
+    links = []
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for link in soup:
             try:
-                exit_gate = link.a.get("href")
-                executor.submit(expertlinks_scrape, "https://www.atozcartoonist.com" + exit_gate)
+                exit_gate = link.get("href")
+                if "/redirect/" in exit_gate:
+                    link = executor.submit(expertlinks_scrape, "https://www.atozcartoonist.com" + exit_gate)
+                    links.append(link.result())
             except Exception as e:
-                print(e)
+                return (e)
+    del links[-1]
+    return "\n".join(links)
 
  
-atozcartoonist_bypasser("https://www.atozcartoonist.com/2022/09/mickey-mouse-clubhouse-season-1-hindi-tamil-telugu-english-episodes-download-1080p-fhd.html")
+print(atozcartoonist_bypasser("https://www.atozcartoonist.com/2022/09/doraemon-nobitas-treasure-island-full-movie-in-hindi-tamil-telugu-download.html"))
